@@ -39,11 +39,14 @@ func loadConfig() *CliConfig {
 func createCli(config *CliConfig) {
 	app := cli.NewApp()
 
+	app.Usage = "A cli for deployerd"
+	app.Author = ""
+	app.Email = ""
 	app.Commands = []cli.Command{
 		{
 			Name:      "release",
 			ShortName: "r",
-			Usage:     "Create a release",
+			Usage:     "Creates a release",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "environment, e",
