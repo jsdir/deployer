@@ -1,9 +1,8 @@
 package deployer
 
 import (
+	"encoding/binary"
 	"encoding/json"
-	"log"
-	"strconv"
 
 	"github.com/boltdb/bolt"
 	"github.com/jsdir/deployer/pkg/names"
@@ -34,7 +33,6 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 		c := b.Cursor()
 		k, v := c.Last()
 		if k != nil {
-			log.Printf("%v %v", string(k[:]), string(v[:]))
 			lastRelease := new(Release)
 			err := json.Unmarshal(v, &lastRelease)
 			if err != nil {
@@ -50,12 +48,13 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 
 		// Save the release.
 		data, err := json.Marshal(&release)
-		log.Printf("%v", string(data[:]))
 		if err != nil {
 			return err
 		}
 
-		return b.Put([]byte(strconv.Itoa(release.Id)), data)
+		idBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint16(idBytes, uint16(release.Id))
+		return b.Put(idBytes, data)
 	})
 
 	if err != nil {

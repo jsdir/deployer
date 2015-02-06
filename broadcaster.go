@@ -1,12 +1,13 @@
 package deployer
 
 type Broadcaster struct {
-	listeners []chan interface{}
+	listeners map[int]chan interface{}
+	incr      int
 }
 
 func NewBroadcaster() *Broadcaster {
 	b := &Broadcaster{
-		listeners: []chan interface{}{},
+		listeners: make(map[int]chan interface{}),
 	}
 	return b
 }
@@ -17,8 +18,13 @@ func (b *Broadcaster) Write(message interface{}) {
 	}
 }
 
-func (b *Broadcaster) Listen() chan interface{} {
+func (b *Broadcaster) Listen() (int, chan interface{}) {
 	channel := make(chan interface{})
-	b.listeners = append(b.listeners, channel)
-	return channel
+	b.incr++
+	b.listeners[b.incr] = channel
+	return b.incr, channel
+}
+
+func (b *Broadcaster) Unregister(index int) {
+	delete(b.listeners, index)
 }

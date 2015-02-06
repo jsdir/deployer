@@ -77,13 +77,11 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 	// If the build does not already exist, wait for it to be created.
 	//var newBuild *Build
 	if !exists {
-		newBuilds := ctx.NewBuilds.Listen()
+		listenerId, newBuilds := ctx.NewBuilds.Listen()
 		for {
 			newBuild := <-newBuilds
-			log.Printf("Got build %v", newBuild)
 			if build.Equals(newBuild.(*Build)) {
-				log.Printf("equals")
-				// TODO: ctx.NewBuilds.Unregister(newBuilds)
+				ctx.NewBuilds.Unregister(listenerId)
 				break
 			}
 		}
