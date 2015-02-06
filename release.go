@@ -1,26 +1,60 @@
 package deployer
 
 import (
-	//"encoding/json"
+	"encoding/json"
+	"log"
+	"strconv"
 
 	"github.com/boltdb/bolt"
 )
 
 type Release struct {
-	Id       int
-	Name     string
-	Config   interface{}
-	Services map[string]string
+	Id       int               `json:"id"`
+	Name     string            `json:"name"`
+	Config   interface{}       `json:"config"`
+	Services map[string]string `json:"services"`
 }
 
 func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
+	// Create a release
 	release := new(Release)
+	release.Id = 0
+	release.Name = "random-name"
+	release.Config = false
+	release.Services = make(map[string]string)
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("releases"))
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(), []byte("42"))
+
+		// Extend the params of the previous release if it exists.
+		c := b.Cursor()
+		k, v := c.Last()
+		if k != nil {
+			log.Printf("%v %v", string(k[:]), string(v[:]))
+			lastRelease := new(Release)
+			err := json.Unmarshal(v, &lastRelease)
+			if err != nil {
+				return err
+			}
+
+			release.Id = lastRelease.Id + 1
+			release.Services = lastRelease.Services
+		}
+
+		// Set the new build tag.
+		release.Services[build.Service] = build.Tag
+
+		// Save the release.
+		data, err := json.Marshal(&release)
+		log.Printf("%v", string(data[:]))
+		if err != nil {
+			return err
+		}
+
+		return b.Put([]byte(strconv.Itoa(release.Id)), data)
 	})
 
 	if err != nil {
@@ -28,25 +62,4 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 	}
 
 	return release, nil
-	// Create the new release by extending the last release with the new service build.
-	/*
-		c := b.Cursor()
-		c.Last()
-		k, v := c.Next()
-
-		// Generate metadata
-		release = Release{
-			Id:       k + 1,
-			Name:     0,
-			Services: unmarshalled,
-		}
-
-		// Update to the new build.
-		release.services[build.Service] = build.Tag
-
-		db[id] = json.serialize(release)
-
-		// Save the new release to the database
-		return &release, nil
-	*/
 }

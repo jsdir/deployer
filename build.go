@@ -1,7 +1,7 @@
 package deployer
 
 import (
-	"log"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/mholt/binding"
@@ -26,8 +26,6 @@ func (build *Build) FieldMap() binding.FieldMap {
 }
 
 func (build *Build) Equals(cmpBuild *Build) bool {
-	log.Printf("tx %v", build)
-	log.Printf("rx %v", cmpBuild)
 	if build.Service != cmpBuild.Service {
 		return false
 	}
@@ -61,7 +59,7 @@ func (build *Build) Save(db *bolt.DB) error {
 		}
 
 		key := build.getKey()
-		return b.Put([]byte(key), []byte("ts"))
+		return b.Put([]byte(key), []byte(time.Now().Format(time.RFC3339)))
 	})
 }
 

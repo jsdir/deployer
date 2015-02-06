@@ -117,9 +117,9 @@ func createRelease(config *CliConfig, c *cli.Context) string {
 		log.Fatal(err)
 	}
 
-	log.Printf(string(body[:]))
-
-	return "1"
+	id := string(body[:])
+	println(id)
+	return id
 }
 
 func createDeploy(config *CliConfig, src string, dest string) {
