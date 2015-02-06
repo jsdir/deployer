@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/jsdir/deployer"
+
 	"github.com/codegangsta/cli"
 )
 
@@ -54,12 +56,13 @@ func createCli(config *CliConfig) {
 				},
 			},
 			Action: func(c *cli.Context) {
-				release := createRelease(config, c)
+				createRelease(config, c)
+				//release := createRelease(config, c)
 
 				// Deploy to environment if it is specified.
 				env := c.String("environment")
 				if env != "" {
-					createDeploy(config, release, env)
+					//createDeploy(config, release, env)
 				}
 			},
 		},
@@ -87,7 +90,7 @@ func createCli(config *CliConfig) {
 	app.Run(os.Args)
 }
 
-func createRelease(config *CliConfig, c *cli.Context) string {
+func createRelease(config *CliConfig, c *cli.Context) *deployer.Release {
 	// Validate arguments
 	args := c.Args()
 	service := args.Get(0)
@@ -112,14 +115,16 @@ func createRelease(config *CliConfig, c *cli.Context) string {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	id := string(body[:])
-	println(id)
-	return id
+	release := new(deployer.Release)
+	json.Unmarshal(data, &release)
+	println(string(data[:]))
+	println(release.Id)
+	return release
 }
 
 func createDeploy(config *CliConfig, src string, dest string) {
