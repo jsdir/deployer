@@ -1,12 +1,12 @@
 package main
 
 import (
-	"os"
-	"log"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/codegangsta/cli"
 )
@@ -95,18 +95,18 @@ func createRelease(config *CliConfig, c *cli.Context) string {
 		log.Fatal("A valid service is required")
 	}
 
-	build := args.Get(1)
-	if build == "" {
-		log.Fatal("A valid build is required")
+	tag := args.Get(1)
+	if tag == "" {
+		log.Fatal("A valid build tag is required")
 	}
 
 	log.Println("Creating release...")
 
 	values := url.Values{}
 	values.Set("service", service)
-	values.Add("build", build)
+	values.Add("tag", tag)
 
-	res, err := http.PostForm(config.Addr + "/releases", values)
+	res, err := http.PostForm(config.Addr+"/releases", values)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,10 +126,10 @@ func createDeploy(config *CliConfig, src string, dest string) {
 	log.Println("Creating deploy...")
 
 	values := url.Values{}
-    values.Set("src", src)
-    values.Add("dest", dest)
+	values.Set("src", src)
+	values.Add("dest", dest)
 
-	res, err := http.PostForm(config.Addr + "/deploys", values)
+	res, err := http.PostForm(config.Addr+"/deploys", values)
 	if err != nil {
 		log.Fatal(err)
 	}
