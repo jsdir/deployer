@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/boltdb/bolt"
+	"github.com/jsdir/deployer/pkg/names"
 )
 
 type Release struct {
@@ -19,7 +20,7 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 	// Create a release
 	release := new(Release)
 	release.Id = 0
-	release.Name = "random-name"
+	release.Name = names.NewRandomName("-")
 	release.Config = false
 	release.Services = make(map[string]string)
 
