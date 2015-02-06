@@ -1,6 +1,7 @@
 package deployer
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -94,7 +95,14 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 		return http.StatusInternalServerError, err
 	}
 
-	fmt.Fprint(rw, release.Id)
+	// Respond with the release object.
+	data, err := json.Marshal(release)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(data)
 	return 201, nil
 }
 
