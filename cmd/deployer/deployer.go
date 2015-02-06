@@ -56,13 +56,12 @@ func createCli(config *CliConfig) {
 				},
 			},
 			Action: func(c *cli.Context) {
-				createRelease(config, c)
-				//release := createRelease(config, c)
+				release := createRelease(config, c)
 
 				// Deploy to environment if it is specified.
 				env := c.String("environment")
 				if env != "" {
-					//createDeploy(config, release, env)
+					createDeploy(config, string(release.Id), env)
 				}
 			},
 		},
@@ -128,7 +127,7 @@ func createRelease(config *CliConfig, c *cli.Context) *deployer.Release {
 }
 
 func createDeploy(config *CliConfig, src string, dest string) {
-	log.Println("Creating deploy...")
+	log.Println("Deploying...")
 
 	values := url.Values{}
 	values.Set("src", src)

@@ -1,4 +1,4 @@
-package deployer
+package resources
 
 import (
 	"encoding/binary"
@@ -52,9 +52,7 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 			return err
 		}
 
-		idBytes := make([]byte, 4)
-		binary.LittleEndian.PutUint16(idBytes, uint16(release.Id))
-		return b.Put(idBytes, data)
+		return b.Put(convertIdToBytes(release.Id), data)
 	})
 
 	if err != nil {
@@ -62,4 +60,30 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 	}
 
 	return release, nil
+}
+
+func GetRelease(db *bolt.DB, id int) (*Release, error) {
+	var release Release
+
+	err = db.Update(func(tx *blot.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("releases"))
+		if err != nil {
+			return err
+		}
+
+		data = b.Get(convertIdToBytes(idInt))
+		return json.Unmarshal(data, &release)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return release, nil
+}
+
+func convertIdToBytes(id integer) []bytes {
+	result := make([]byte, 4)
+	binary.LittleEndian.PutUint16(idBytes, uint16(id))
+	return result
 }

@@ -9,17 +9,12 @@ import (
 	"github.com/mholt/binding"
 )
 
-type ServerError struct {
-	err  error
-	code int
-}
-
 type ContextHandler func(*Context, http.ResponseWriter, *http.Request) (int, error)
 
 func CreateServer(ctx *Context) {
 	http.HandleFunc("/builds", makeHandler(ctx, buildHandler))
 	http.HandleFunc("/releases", makeHandler(ctx, releaseHandler))
-	// http.HandleFunc("/deploys", makeHandler(ctx, deployHandler))
+	http.HandleFunc("/deploys", makeHandler(ctx, deployHandler))
 
 	log.Printf(fmt.Sprintf("Listening on port %v", ctx.Config.Port))
 	http.ListenAndServe(fmt.Sprintf(":%v", ctx.Config.Port), nil)
@@ -106,13 +101,53 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 	return 201, nil
 }
 
-/*
-func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) {
-	// Ensure both exist
-	//req.from req.to
-	// ensure to (if integer) is valid release
-	// else if string, ensure valid environment
-	// ensure to is valid environment
-	// set environment deploys...
+func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
+	// Create a deploy request
+	deploy := new(DeployRequest)
+	errs := binding.Bind(req, deploy)
+	if errs != nil {
+		return http.StatusBadRequest, errs
+	}
+
+	// Get environment config from config.json
+	envConfig := ctx.Config.Environments[deploy.Dest]
+	if envConfig == nil {
+		return http.StatusBadRequest, "Invalid destination environment"
+	}
+
+	// Check if src is valid. First, we'll assume that src is a release id.
+	var srcRelease *Release
+	id, err := strconv.Atoi(deploy.Src)
+	if err == nil {
+		srcRelease, err := GetRelease(ctx.Db, id)
+		if err {
+			return http.StatusBadRequest, err
+		}
+	}
+
+	if srcRelease == nil {
+		// Since no release with the given id exists, it must belong to an
+		// environment.
+		srcEnv, err := GetEnvironment(ctx.Db, deploy.Src)
+		if err != nil {
+			return http.StatusBadRequest, err
+		}
+
+		if srcEnv == nil {
+			return http.StatusBadRequest, "Invalid source environment"
+		}
+
+		srcRelease, err := GetRelease(ctx.Db, srcEnv.ReleaseId)
+		if err {
+			return http.StatusBadRequest, err
+		}
+	}
+
+	// Deploy to destination environment.
+	err = DeployToEnv(ctx.Db, deploy.Dest, srcRelease)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return 201, nil
 }
-*/
