@@ -2,9 +2,13 @@ package deployer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/jsdir/deployer/pkg/resources"
 
 	"github.com/mholt/binding"
 )
@@ -41,7 +45,7 @@ func makeHandler(ctx *Context, fn ContextHandler) http.HandlerFunc {
 
 func buildHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
 	// Create new build
-	build := new(Build)
+	build := new(resources.Build)
 	errs := binding.Bind(req, build)
 	if errs != nil {
 		return http.StatusBadRequest, errs
@@ -59,7 +63,7 @@ func buildHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int,
 
 func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
 	// Create new build for comparison
-	build := new(Build)
+	build := new(resources.Build)
 	errs := binding.Bind(req, build)
 	if errs != nil {
 		return http.StatusBadRequest, errs
@@ -76,7 +80,7 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 		listenerId, newBuilds := ctx.NewBuilds.Listen()
 		for {
 			newBuild := <-newBuilds
-			if build.Equals(newBuild.(*Build)) {
+			if build.Equals(newBuild.(*resources.Build)) {
 				ctx.NewBuilds.Unregister(listenerId)
 				break
 			}
@@ -85,7 +89,7 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 
 	// At this point, since the build exists, it is now safe to create and
 	// deploy a release.
-	release, err := NewRelease(ctx.Db, build)
+	release, err := resources.NewRelease(ctx.Db, build)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -103,48 +107,54 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 
 func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
 	// Create a deploy request
-	deploy := new(DeployRequest)
+	deploy := new(resources.DeployRequest)
 	errs := binding.Bind(req, deploy)
 	if errs != nil {
 		return http.StatusBadRequest, errs
 	}
 
-	// Get environment config from config.json
-	envConfig := ctx.Config.Environments[deploy.Dest]
-	if envConfig == nil {
-		return http.StatusBadRequest, "Invalid destination environment"
+	// Get the environment config
+	envConfig, exists := ctx.Config.Environments[deploy.Dest]
+	if !exists {
+		return http.StatusBadRequest, errors.New("Invalid destination environment")
 	}
 
 	// Check if src is valid. First, we'll assume that src is a release id.
-	var srcRelease *Release
+	var release *resources.Release
 	id, err := strconv.Atoi(deploy.Src)
 	if err == nil {
-		srcRelease, err := GetRelease(ctx.Db, id)
-		if err {
+		release, err = resources.GetRelease(ctx.Db, id)
+		if err != nil {
 			return http.StatusBadRequest, err
 		}
 	}
 
-	if srcRelease == nil {
+	if release == nil {
 		// Since no release with the given id exists, it must belong to an
 		// environment.
-		srcEnv, err := GetEnvironment(ctx.Db, deploy.Src)
+		env, err := resources.GetEnvironment(ctx.Db, deploy.Src)
 		if err != nil {
 			return http.StatusBadRequest, err
 		}
 
-		if srcEnv == nil {
-			return http.StatusBadRequest, "Invalid source environment"
+		if env == nil {
+			return http.StatusBadRequest, errors.New("Invalid source environment")
 		}
 
-		srcRelease, err := GetRelease(ctx.Db, srcEnv.ReleaseId)
-		if err {
+		release, err = resources.GetRelease(ctx.Db, env.ReleaseId)
+		if err != nil {
 			return http.StatusBadRequest, err
 		}
 	}
 
+	// Get the environment type
+	envType := GetEnvironmentType(envConfig.Type)
+	if envType == nil {
+		return http.StatusBadRequest, errors.New("Invalid environment type")
+	}
+
 	// Deploy to destination environment.
-	err = DeployToEnv(ctx.Db, deploy.Dest, srcRelease)
+	err = release.Deploy(ctx.Db, deploy.Dest, envConfig, envType)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

@@ -3,6 +3,7 @@ package resources
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 
 	"github.com/boltdb/bolt"
 	"github.com/jsdir/deployer/pkg/names"
@@ -65,13 +66,13 @@ func NewRelease(db *bolt.DB, build *Build) (*Release, error) {
 func GetRelease(db *bolt.DB, id int) (*Release, error) {
 	var release Release
 
-	err = db.Update(func(tx *blot.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("releases"))
 		if err != nil {
 			return err
 		}
 
-		data = b.Get(convertIdToBytes(idInt))
+		data := b.Get(convertIdToBytes(id))
 		return json.Unmarshal(data, &release)
 	})
 
@@ -79,11 +80,89 @@ func GetRelease(db *bolt.DB, id int) (*Release, error) {
 		return nil, err
 	}
 
-	return release, nil
+	return &release, nil
 }
 
-func convertIdToBytes(id integer) []bytes {
+func (r *Release) Deploy(db *bolt.DB, dest string, envConfig interface{}, envType EnvironmentType) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("environments"))
+		if err != nil {
+			return err
+		}
+
+		// Load the destination environment.
+		key := []byte(dest)
+		data := b.Get(key)
+		env := new(Environment)
+		if data != nil {
+			err = json.Unmarshal(data, &env)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		// Change and save the environment data.
+		lastReleaseId := env.ReleaseId
+
+		// Update the environment in the same transation it was loaded from.
+		env.ReleaseId = r.Id
+		env.Updated = "now"
+		env.DeployActive = true
+
+		newData, err := json.Marshal(env)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put(key, newData)
+		if err != nil {
+			return err
+		}
+
+		// Begin the deploy by first loading the last release for service
+		// comparision.
+		// TODO: handle errors in deploy
+
+		releaseBucket := tx.Bucket([]byte("releases"))
+		releaseData := releaseBucket.Get(convertIdToBytes(lastReleaseId))
+
+		if releaseData == nil {
+			return errors.New("could not load last release")
+		}
+
+		lastRelease := new(Release)
+		err = json.Unmarshal(releaseData, &lastRelease)
+		if err != nil {
+			return err
+		}
+
+		changedServices := r.getChangedServices(lastRelease)
+
+		if len(changedServices) == 0 {
+			// TODO: no services changed: deploy successful
+		}
+
+		// Create deploy and give
+		envType.Deploy(&Deploy{
+			Env:             env,
+			LastRelease:     lastRelease,
+			Release:         r,
+			ChangedServices: changedServices,
+			EnvConfig:       envConfig,
+		})
+
+		return nil
+	})
+}
+
+func (r *Release) getChangedServices(lastRelease *Release) []string {
+	//r.Services lastRelease.Services
+	return nil
+}
+
+func convertIdToBytes(id int) []byte {
 	result := make([]byte, 4)
-	binary.LittleEndian.PutUint16(idBytes, uint16(id))
+	binary.LittleEndian.PutUint16(result, uint16(id))
 	return result
 }

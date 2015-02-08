@@ -5,8 +5,7 @@ import (
 )
 
 type Deploy struct {
-	Src             *Environment
-	Dest            *Environment
+	Env             *Environment
 	LastRelease     *Release
 	Release         *Release
 	ChangedServices []string

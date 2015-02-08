@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/jsdir/deployer"
+	"github.com/jsdir/deployer/pkg/resources"
 
 	"github.com/codegangsta/cli"
 )
@@ -89,7 +89,7 @@ func createCli(config *CliConfig) {
 	app.Run(os.Args)
 }
 
-func createRelease(config *CliConfig, c *cli.Context) *deployer.Release {
+func createRelease(config *CliConfig, c *cli.Context) *resources.Release {
 	// Validate arguments
 	args := c.Args()
 	service := args.Get(0)
@@ -119,7 +119,7 @@ func createRelease(config *CliConfig, c *cli.Context) *deployer.Release {
 		log.Fatal(err)
 	}
 
-	release := new(deployer.Release)
+	release := new(resources.Release)
 	json.Unmarshal(data, &release)
 	println(string(data[:]))
 	println(release.Id)

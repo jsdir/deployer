@@ -41,36 +41,36 @@ func (k *Kubernetes) Deploy(deploy *resources.Deploy) error {
 		go func(filename string) {
 			data, err := ioutil.ReadFile(filename)
 			if err != nil {
-				return err
+				//return err
 			}
 
 			tmpl, err := template.New("").Parse(string(data))
 			if err != nil {
-				return err
+				//return err
 			}
 
 			cmd := exec.Command(command, "update", "-f", "-")
 			stdin, err := cmd.StdinPipe()
 			if err != nil {
-				return err
+				//return err
 			}
 
 			err = cmd.Start()
 			if err != nil {
-				return err
+				//return err
 			}
 
 			err = tmpl.Execute(stdin, deploy)
 			if err != nil {
-				return err
+				//return err
 			}
 
 			err = cmd.Wait()
 			if err != nil {
-				results <- err
+				//results <- err
 			}
 
-			results <- nil
+			results <- true
 
 		}(filename)
 	}

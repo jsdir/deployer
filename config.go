@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-
-	"github.com/jsdir/deployer/pkg/resources"
 )
 
+type EnvironmentConfig struct {
+	Type string `json:"type"`
+}
+
 type ServerConfig struct {
-	Port         int                              `json:"port"`
-	Environments map[string]resources.Environment `json:"environments"`
+	Port         int                          `json:"port"`
+	Environments map[string]EnvironmentConfig `json:"environments"`
 }
 
 func LoadConfig(path string, config interface{}) {

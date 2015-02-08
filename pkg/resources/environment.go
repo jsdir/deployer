@@ -7,7 +7,7 @@ import (
 )
 
 type EnvironmentType interface {
-	Deploy(*Deploy, interface{}) error
+	Deploy(*Deploy) error
 }
 
 type Environment struct {
@@ -16,50 +16,7 @@ type Environment struct {
 	DeployActive bool   `json:'active'`
 }
 
-func DeployToEnv(db *bolt.Db, name string, release *Release) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte("environments"))
-		if err != nil {
-			return err
-		}
-
-		key := []byte(name)
-		data := b.Get(key)
-		if data == nil {
-			// Create the environment.
-			env := Environment{}
-		} else {
-			env := new(Environment)
-			json.Unmarshal(data, &env)
-		}
-
-		// Start the deploy.
-		prevReleaseId := env.ReleaseId
-
-		// Update the environment within the same transation we loaded it from.
-		env.ReleaseId = release.Id
-		env.Updated = "now"
-		env.DeployActive = true
-
-		data, err = json.Marshal(env)
-		if err != nil {
-			return err
-		}
-
-		err = b.Put(key, data)
-		if err != nil {
-			return err
-		}
-
-		// Load the previous release for service comparison.
-	})
-
-	if err != nil {
-		return err
-	}
-}
-
-func GetEnvironment(db *bolt.Db, name string) (*Environment, error) {
+func GetEnvironment(db *bolt.DB, name string) (*Environment, error) {
 	var env *Environment
 	err := db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte("environments"))
@@ -72,6 +29,8 @@ func GetEnvironment(db *bolt.Db, name string) (*Environment, error) {
 		if data != nil {
 			json.Unmarshal(data, env)
 		}
+
+		return nil
 	})
 
 	if err != nil {
