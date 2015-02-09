@@ -144,15 +144,13 @@ func (r *Release) Deploy(db *bolt.DB, dest string, envConfig interface{}, envTyp
 		}
 
 		// Create deploy and give
-		envType.Deploy(&Deploy{
+		return envType.Deploy(&Deploy{
 			Env:             env,
 			LastRelease:     lastRelease,
 			Release:         r,
 			ChangedServices: changedServices,
 			EnvConfig:       envConfig,
 		})
-
-		return nil
 	})
 }
 

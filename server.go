@@ -148,7 +148,7 @@ func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int
 	}
 
 	// Get the environment type
-	envType := GetEnvironmentType(envConfig.Type)
+	envType := GetEnvironmentType(envConfig["type"].(string))
 	if envType == nil {
 		return http.StatusBadRequest, errors.New("Invalid environment type")
 	}

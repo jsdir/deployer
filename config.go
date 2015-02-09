@@ -6,13 +6,9 @@ import (
 	"log"
 )
 
-type EnvironmentConfig struct {
-	Type string `json:"type"`
-}
-
 type ServerConfig struct {
-	Port         int                          `json:"port"`
-	Environments map[string]EnvironmentConfig `json:"environments"`
+	Port         int                               `json:"port"`
+	Environments map[string]map[string]interface{} `json:"environments"`
 }
 
 func LoadConfig(path string, config interface{}) {

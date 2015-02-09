@@ -23,7 +23,7 @@ func (d *DeployRequest) FieldMap() binding.FieldMap {
 			Form:     "src",
 			Required: true,
 		},
-		&d.Src: binding.Field{
+		&d.Dest: binding.Field{
 			Form:     "dest",
 			Required: true,
 		},
