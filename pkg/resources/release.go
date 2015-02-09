@@ -155,8 +155,13 @@ func (r *Release) Deploy(db *bolt.DB, dest string, envConfig interface{}, envTyp
 }
 
 func (r *Release) getChangedServices(lastRelease *Release) []string {
-	//r.Services lastRelease.Services
-	return nil
+	changedServices := []string{}
+	for service, tag := range r.Services {
+		if lastRelease.Services[service] != tag {
+			changedServices = append(changedServices, tag)
+		}
+	}
+	return changedServices
 }
 
 func convertIdToBytes(id int) []byte {

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/jsdir/deployer"
 
@@ -9,6 +11,9 @@ import (
 )
 
 func main() {
+	// Seed random number generator for release names.
+	rand.Seed(time.Now().UnixNano())
+
 	app := cli.NewApp()
 
 	app.Usage = "The deployer server"
