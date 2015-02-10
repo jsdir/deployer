@@ -158,7 +158,7 @@ func (r *Release) getChangedServices(lastRelease *Release) []string {
 	changedServices := []string{}
 	for service, tag := range r.Services {
 		if lastRelease.Services[service] != tag {
-			changedServices = append(changedServices, tag)
+			changedServices = append(changedServices, service)
 		}
 	}
 	return changedServices
