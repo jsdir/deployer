@@ -3,14 +3,27 @@ machine:
     - docker
   environment:
     CGO_ENABLED: 0
+    GOARCH: amd64
     GOOS: linux
 
-dependencies:
+checkout:
   post:
-    - go build pkg/deployer/deployer.go
-    - go build pkg/deployerd/deployerd.go
-    - ldd ./deployer
-    - ldd ./deployerd
+    - rm -rf ~/.go_workspace/src/github.com/jsdir/deployer
+    - mkdir -p ~/.go_workspace/src/github.com/jsdir/deployer
+    - cp -R ~/deployer ~/.go_workspace/src/github.com/jsdir/deployer
+
+dependencies:
+  override:
+    - cd github.com/jsdir/deployer; go get
+    - go build -v github.com/jsdir/deployer/...
+
+test:
+  override:
+    - go test -v github.com/jsdir/deployer/...
+  post:
+    - ls ~/.go_workspace/src/github.com/jsdir/deployer
+#    - ldd ./deployer
+#    - ldd ./deployerd
 
 deployment:
   hub:
