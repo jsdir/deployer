@@ -5,13 +5,14 @@ machine:
     CGO_ENABLED: 0
     GOOS: linux
 
+dependencies:
+  post:
+    - go build pkg/deployer/deployer.go
+    - go build pkg/deployerd/deployerd.go
+    - ldd ./deployer
+    - ldd ./deployerd
+
 deployment:
-  pre:
-    commands:
-      - go build pkg/deployer/deployer.go
-      - go build pkg/deployerd/deployerd.go
-      - ldd ./deployer
-      - ldd ./deployerd
   hub:
     branch: master
     commands:
