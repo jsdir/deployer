@@ -9,10 +9,11 @@ machine:
 dependencies:
   override:
     - go get -t -d -v ./...
+
+test:
+  post:
     - go build -a -installsuffix cgo -ldflags '-extldflags "-static" -s' -v cmd/deployer/deployer.go
     - go build -a -installsuffix cgo -ldflags '-extldflags "-static" -s' -v cmd/deployerd/deployerd.go
-    - ldd deployer
-    - ldd deployerd
 
 deployment:
   master:
