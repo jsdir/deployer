@@ -7,6 +7,12 @@ deployer
 
 Deployer manages and deploys releases for distributed applications. Although it currently only works with kubernetes, it can be easily extended to work with other cloud orchestration systems. Contributions are more than welcome!
 
+Deployer can:
+
+- Manage releases through a CLI
+- Deploy to multiple environments and individually apply releases to them
+- Use pluggable environment backends
+
 ## Quickstart
 
 We'll use docker for demonstrating how deployer works with a kubernetes cluster. First, pull some images.
@@ -143,7 +149,6 @@ New examples are coming soon:
 
 ## Documentation
 
-- Features
 - Concepts and design
 - Usage
 - API
