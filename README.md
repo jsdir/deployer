@@ -12,17 +12,15 @@ Deployer manages and deploys releases for distributed applications. Although it 
 We'll use docker for demonstrating how deployer works with a kubernetes cluster. First, pull some images.
 
 ```bash
-$ docker pull jsdir/deployer llamashoes/dind-kubernetes 
+$ docker pull jsdir/deployer
+$ docker pull llamashoes/dind-kubernetes
 ```
 
 Start a local kubernetes cluster.
 
 ```bash
-$ docker run llamashoes/dind-kubernetes
+$ docker run -d -p 127.0.0.1:8888:8888 --privileged llamashoes/dind-kubernetes
 ```
-
-TODO: two clusters?
-
 
 Next, we'll write some configuration files for deployer.
 
@@ -53,7 +51,7 @@ EOF
 
 ### Kubernetes manifest
 
-This manifests injects information about the deployment into the container's environment through templates. This is done using [deployer-kubernetes](https://github.com/jsdir/deployer-kubernetes).
+This manifest injects information about the deployment into the container's environment through templates. This is done using [deployer-kubernetes](https://github.com/jsdir/deployer-kubernetes).
 
 ```bash
 cat <<EOF > /tmp/deployer-demo/manifest.json
@@ -65,24 +63,24 @@ EOF
 
 ### Creating releases
 
-Now that the server config is set up, start `deployerd`, the server daemon.
+Now that the config is set up, start the daemon.
 
 ```bash
-$ docker run -p 7654 -v /tmp/deployer-demo:/config jsdir/deployer
+$ docker run -d -p 7654:7654 -v /tmp/deployer-demo:/data jsdir/deployer deployerd --config /data/config.json
 ```
 
-Commands can be sent to `deployerd` through the HTTP API, or through `deployer`, a simple command line interface that's bundled with the image.
+Commands can be sent to `deployerd` through the HTTP API, or through `deployer`, a simple command line interface that's bundled with `jsdir/deployer`.
 
 We'll use the API to create a build. This step would be run manually or in CI once a docker image is tested, built, and uploaded to the registry. In this case, we'll continue as if you just uploaded `jsdir/deployer-web-demo#version1` to the registry.
 
 ```bash
-curl http://localhost:7654/builds service=web-demo&build=jsdir/deployer-web-demo#version1
+curl --data "service=web-demo&build=jsdir/deployer-web-demo#version1" localhost:7654/builds
 ```
 
 Next, we'll create a release with the new build using the CLI.
 
 ```bash
-$ deployer -addr=http://localhost:7654 release web-demo deployer-web-demo#1
+$ docker run jsdir/deployer deployer -addr=http://localhost:7654 release web-demo deployer-web-demo#1
 {"id": 1, "name": "super-panda", "services": {"web-demo": "jsdir/deployer-web-demo#1"}}
 1
 ```
@@ -91,7 +89,7 @@ This creates a release. The release is a named, atomic mapping of services and t
 
 ### Deploying releases
 
-To deploy this release, we'll again use the CLI.
+To deploy this release, we'll use the CLI.
 
 ```bash
 deployer -addr=http://localhost:7654 deploy 1 staging
