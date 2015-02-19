@@ -1,0 +1,15 @@
+machine:
+  services:
+    - docker
+
+deployment:
+  pre:
+    - CGO_ENABLED=0 GOOS=linux go build pkg/deployer/deployer.go
+    - CGO_ENABLED=0 GOOS=linux go build pkg/deployerd/deployerd.go
+    - ldd ./deployer
+    - ldd ./deployerd
+  hub:
+    branch: master
+    commands:
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push jsdir/deployer
