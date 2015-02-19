@@ -15,11 +15,10 @@ dependencies:
     - ldd deployerd
 
 deployment:
-  before:
-    - docker info
-    - docker build -t jsdir/deployer .
-  hub:
+  master:
     branch: master
     commands:
+      - docker info
+      - docker build -t jsdir/deployer .
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
       - docker push jsdir/deployer
