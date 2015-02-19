@@ -24,5 +24,7 @@ func TestGetChangedServices(t *testing.T) {
 		},
 	})
 
-	assert.Equal(t, changedServices, []string{"service3", "service4"})
+	assert.Len(t, changedServices, 2)
+	assert.Contains(t, changedServices, "service3")
+	assert.Contains(t, changedServices, "service4")
 }

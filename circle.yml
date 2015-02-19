@@ -7,9 +7,9 @@ machine:
     GOOS: linux
 
 dependencies:
-  post:
+  override:
+    - go get -t -d -v ./...
     - go build -v ./...
-    - ls .
 
 deployment:
   hub:
