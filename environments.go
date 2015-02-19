@@ -1,8 +1,8 @@
 package deployer
 
 import (
-	"github.com/jsdir/deployer/pkg/environments"
 	"github.com/jsdir/deployer-kubernetes"
+	"github.com/jsdir/deployer/pkg/resources"
 )
 
 func GetEnvironmentType(name string) resources.EnvironmentType {
