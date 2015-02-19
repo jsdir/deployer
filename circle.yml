@@ -1,13 +1,17 @@
 machine:
   services:
     - docker
+  environment:
+    CGO_ENABLED: 0
+    GOOS: linux
 
 deployment:
   pre:
-    - CGO_ENABLED=0 GOOS=linux go build pkg/deployer/deployer.go
-    - CGO_ENABLED=0 GOOS=linux go build pkg/deployerd/deployerd.go
-    - ldd ./deployer
-    - ldd ./deployerd
+    commands:
+      - go build pkg/deployer/deployer.go
+      - go build pkg/deployerd/deployerd.go
+      - ldd ./deployer
+      - ldd ./deployerd
   hub:
     branch: master
     commands:
