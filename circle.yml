@@ -9,12 +9,15 @@ machine:
 dependencies:
   override:
     - go get -t -d -v ./...
-    - go build -v -a -ldflags '-s' cmd/deployer/deployer.go
-    - go build -v -a -ldflags '-s' cmd/deployerd/deployerd.go
+    - go build -a -installsuffix cgo -ldflags '-extldflags "-static" -s' -v cmd/deployer/deployer.go
+    - go build -a -installsuffix cgo -ldflags '-extldflags "-static" -s' -v cmd/deployerd/deployerd.go
     - ldd deployer
     - ldd deployerd
 
 deployment:
+  before:
+    - docker info
+    - docker build -t jsdir/deployer .
   hub:
     branch: master
     commands:
