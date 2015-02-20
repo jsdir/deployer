@@ -1,7 +1,7 @@
 deployer
 ========
 
-[![Build Status](https://img.shields.io/circleci/project/jsdir/deployer.svg)](https://travis-ci.org/jsdir/deployer)
+[![Build Status](https://img.shields.io/circleci/project/jsdir/deployer.svg)](https://circleci.com/gh/jsdir/deployer)
 
 ## What is it?
 
