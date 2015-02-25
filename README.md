@@ -40,11 +40,6 @@ cat <<EOF > /tmp/deployer-demo/config.json
 {
   "port": 7654,
   "environments": {
-    "staging": {
-      "type": "kubernetes",
-      "manifestGlob": "/tmp/deployer-demo/staging.json",
-      "cmd": "docker kubectl --server=http://localhost:7654"
-    },
     "production": {
       "type": "kubernetes",
       "manifestGlob": "/tmp/deployer-demo/manifest.json",
@@ -62,7 +57,29 @@ This manifest injects information about the deployment into the container's envi
 ```bash
 cat <<EOF > /tmp/deployer-demo/manifest.json
 {
-  "option": "value"
+  "id": "server",
+  "kind": "Pod",
+  "apiVersion": "v1beta1",
+  "desiredState": {
+    "manifest": {
+      "version": "v1beta1",
+      "id": "server",
+      "containers": [{
+        "name": "web-demo",
+        "image": "{{.Services.web-demo}}",
+        "cpu": 100,
+        "ports": [{
+          "name": "http",
+          "containerPort": 8091,
+          "hostPort": 8091
+        }],
+        "env": [{
+          "name": "PORT",
+          "value": "8091"
+        }]
+      }]
+    }
+  }
 }
 EOF
 ```
@@ -71,7 +88,7 @@ EOF
 
 Now that the config is set up, start the daemon.
 
-```bash
+```shell
 $ docker run -d -p 7654:7654 --net=host -v /tmp/deployer-demo:/data jsdir/deployer deployerd --config /data/config.json
 ```
 
@@ -79,13 +96,13 @@ Commands can be sent to `deployerd` through the HTTP API, or through `deployer`,
 
 We'll use the API to create a build. This step would be run manually or in CI once a docker image is tested, built, and uploaded to the registry. In this case, we'll continue as if you just uploaded `jsdir/deployer-web-demo#version1` to the registry.
 
-```bash
-curl --data "service=web-demo&tag=jsdir/deployer-web-demo#version1" localhost:7654/builds
+```shell
+$ curl --data "service=web-demo&tag=jsdir/deployer-web-demo#version1" localhost:7654/builds
 ```
 
 Next, we'll create a release with the new build using the CLI.
 
-```bash
+```shell
 $ alias deployer='docker run --net=host jsdir/deployer deployer --addr="http://localhost:7654"'
 $ deployer release web-demo jsdir/deployer-web-demo#version1
 {"id": 0, "name": "super-panda", "services": {"web-demo": "jsdir/deployer-web-demo#version1"}}
@@ -93,54 +110,57 @@ $ deployer release web-demo jsdir/deployer-web-demo#version1
 ```
 
 This creates a release. The release is a named, atomic mapping of services and their builds. Creating a release will always block until the required service builds exist. Since the
-`web-demo` build `jsdir/deployer-web-demo#1` already exists, the client responds immediately.
+`web-demo` build `jsdir/deployer-web-demo#version1` already exists, the client responds immediately.
 
 ### Deploying releases
 
 To deploy this release, we'll use the CLI.
 
-```bash
+```shell
 $ deployer deploy 0 staging
 ```
 
 This deploys release `0` to the `staging` environment. To verify that it works:
 
-```bash
+```shell
 $ curl http://localhost:8091
-> Hello from `jsdir/deployer-web-demo#1`! (super-panda)
-> I'm running in the `staging` environment.
+Hello from `jsdir/deployer-web-demo#1`! (super-panda)
+I'm running in the `staging` environment.
 ```
 
 Since it works, let's deploy the release to production.
 
-```bash
-deployer deploy staging production
+```shell
+$ deployer deploy staging production
 ```
 
 This syntax deploys the current release at the `staging` environment to the `production` environment.
 
-```bash
-curl http://localhost:8092
-> Hello from `jsdir/deployer-web-demo#1`! (super-panda)
-> I'm running in the `production` environment.
+```shell
+$ curl http://localhost:8092
+Hello from `jsdir/deployer-web-demo#1`! (super-panda)
+I'm running in the `production` environment.
 ```
 
 Replacing existing deployments with new releases is simple:
 
-```bash
+```shell
 $ curl http://localhost:7654/builds service=web-demo&tag=jsdir/deployer-web-demo#2
+
 # Creating a new release extends the existing services.
 $ deployer release web-demo jsdir/deployer-web-demo#2
-> {"id": 2, "name": "bubbly-whale", "services": {"web-demo": "jsdir/deployer-web-demo#2"}}
-> 2
+{"id": 2, "name": "bubbly-whale", "services": {"web-demo": "jsdir/deployer-web-demo#2"}}
+2
+
 $ deployer deploy 2 staging
 $ curl http://localhost:8091
-> Hello from `jsdir/deployer-web-demo#2`! (bubbly-whale)
-> I'm running in the `staging` environment.
+Hello from `jsdir/deployer-web-demo#2`! (bubbly-whale)
+I'm running in the `staging` environment.
+
 $ deployer deploy staging production
 $ curl http://localhost:8092
-> Hello from `jsdir/deployer-web-demo#1`! (super-panda)
-> I'm running in the `production` environment.
+Hello from `jsdir/deployer-web-demo#1`! (super-panda)
+I'm running in the `production` environment.
 ```
 
 ## Examples and tutorials
