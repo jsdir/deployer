@@ -44,6 +44,13 @@ func createCli(config *CliConfig) {
 	app.Usage = "A cli for deployerd"
 	app.Author = ""
 	app.Email = ""
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name: "addr",
+			Value: "http://localhost:7654",
+			Usage: "Address and port of the deployerd instance",
+		},
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:      "release",
@@ -56,6 +63,7 @@ func createCli(config *CliConfig) {
 				},
 			},
 			Action: func(c *cli.Context) {
+				config.Addr = c.String("addr")
 				release := createRelease(config, c)
 
 				// Deploy to environment if it is specified.
@@ -70,6 +78,7 @@ func createCli(config *CliConfig) {
 			ShortName: "d",
 			Usage:     "Deploys a release to an environment",
 			Action: func(c *cli.Context) {
+				config.Addr = c.String("addr")
 				args := c.Args()
 				src := args.Get(0)
 				if src == "" {
