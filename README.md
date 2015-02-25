@@ -25,7 +25,7 @@ $ docker pull llamashoes/dind-kubernetes
 Start a local kubernetes cluster.
 
 ```bash
-$ docker run -d -p 127.0.0.1:8888:8888 --privileged llamashoes/dind-kubernetes
+$ docker run -d -p 127.0.0.1:8888:8888 -p 8091:8091 -p 8092:8092 --privileged llamashoes/dind-kubernetes
 ```
 
 Next, we'll write some configuration files for deployer.
@@ -72,7 +72,7 @@ EOF
 Now that the config is set up, start the daemon.
 
 ```bash
-$ docker run -d -p 7654:7654 -v /tmp/deployer-demo:/data jsdir/deployer deployerd --config /data/config.json
+$ docker run -d -p 7654:7654 --net=host -v /tmp/deployer-demo:/data jsdir/deployer deployerd --config /data/config.json
 ```
 
 Commands can be sent to `deployerd` through the HTTP API, or through `deployer`, a simple command line interface that's bundled with `jsdir/deployer`.
@@ -80,31 +80,33 @@ Commands can be sent to `deployerd` through the HTTP API, or through `deployer`,
 We'll use the API to create a build. This step would be run manually or in CI once a docker image is tested, built, and uploaded to the registry. In this case, we'll continue as if you just uploaded `jsdir/deployer-web-demo#version1` to the registry.
 
 ```bash
-curl --data "service=web-demo&build=jsdir/deployer-web-demo#version1" localhost:7654/builds
+curl --data "service=web-demo&tag=jsdir/deployer-web-demo#version1" localhost:7654/builds
 ```
 
 Next, we'll create a release with the new build using the CLI.
 
 ```bash
-$ docker run jsdir/deployer deployer -addr=http://localhost:7654 release web-demo deployer-web-demo#1
-{"id": 1, "name": "super-panda", "services": {"web-demo": "jsdir/deployer-web-demo#1"}}
-1
+$ alias deployer='docker run --net=host jsdir/deployer deployer --addr="http://localhost:7654"'
+$ deployer release web-demo jsdir/deployer-web-demo#version1
+{"id": 0, "name": "super-panda", "services": {"web-demo": "jsdir/deployer-web-demo#version1"}}
+0
 ```
 
-This creates a release. The release is a named, atomic mapping of services and their builds.
+This creates a release. The release is a named, atomic mapping of services and their builds. Creating a release will always block until the required service builds exist. Since the
+`web-demo` build `jsdir/deployer-web-demo#1` already exists, the client responds immediately.
 
 ### Deploying releases
 
 To deploy this release, we'll use the CLI.
 
 ```bash
-deployer -addr=http://localhost:7654 deploy 1 staging
+$ deployer deploy 0 staging
 ```
 
-This deploys release `1` to the `staging` environment. To verify that it works:
+This deploys release `0` to the `staging` environment. To verify that it works:
 
 ```bash
-curl http://localhost:8091
+$ curl http://localhost:8091
 > Hello from `jsdir/deployer-web-demo#1`! (super-panda)
 > I'm running in the `staging` environment.
 ```
@@ -112,7 +114,7 @@ curl http://localhost:8091
 Since it works, let's deploy the release to production.
 
 ```bash
-deployer -addr=http://localhost:7654 deploy staging production
+deployer deploy staging production
 ```
 
 This syntax deploys the current release at the `staging` environment to the `production` environment.
@@ -126,16 +128,17 @@ curl http://localhost:8092
 Replacing existing deployments with new releases is simple:
 
 ```bash
-curl http://localhost:7654/builds service=web-demo&build=jsdir/deployer-web-demo#2
-deployer -addr=http://localhost:7654 release web-demo jsdir/deployer-web-demo#2
+$ curl http://localhost:7654/builds service=web-demo&tag=jsdir/deployer-web-demo#2
+# Creating a new release extends the existing services.
+$ deployer release web-demo jsdir/deployer-web-demo#2
 > {"id": 2, "name": "bubbly-whale", "services": {"web-demo": "jsdir/deployer-web-demo#2"}}
 > 2
-deployer -addr=http://localhost:7654 deploy 2 staging
-curl http://localhost:8091
+$ deployer deploy 2 staging
+$ curl http://localhost:8091
 > Hello from `jsdir/deployer-web-demo#2`! (bubbly-whale)
 > I'm running in the `staging` environment.
-deployer -addr=http://localhost:7654 deploy staging production
-curl http://localhost:8092
+$ deployer deploy staging production
+$ curl http://localhost:8092
 > Hello from `jsdir/deployer-web-demo#1`! (super-panda)
 > I'm running in the `production` environment.
 ```
