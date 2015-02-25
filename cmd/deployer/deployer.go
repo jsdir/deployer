@@ -24,16 +24,21 @@ type CliConfig struct {
 
 // loadConfig loads config from the .Deployer file in the current directory.
 func loadConfig() *CliConfig {
-	data, err := ioutil.ReadFile(".Deployer")
-	if err != nil {
-		log.Fatal(err)
-	}
+	/*
+		data, err := ioutil.ReadFile(".Deployer")
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
 
 	config := CliConfig{}
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		log.Fatal("Error parsing .Deployer: ", err)
-	}
+
+	/*
+		err = json.Unmarshal(data, &config)
+		if err != nil {
+			log.Fatal("Error parsing .Deployer: ", err)
+		}
+	*/
 
 	return &config
 }
@@ -46,7 +51,7 @@ func createCli(config *CliConfig) {
 	app.Email = ""
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name: "addr",
+			Name:  "addr",
 			Value: "http://localhost:7654",
 			Usage: "Address and port of the deployerd instance",
 		},
@@ -63,9 +68,8 @@ func createCli(config *CliConfig) {
 				},
 			},
 			Action: func(c *cli.Context) {
-				config.Addr = c.String("addr")
+				config.Addr = c.GlobalString("addr")
 				release := createRelease(config, c)
-
 				// Deploy to environment if it is specified.
 				env := c.String("environment")
 				if env != "" {
@@ -78,7 +82,7 @@ func createCli(config *CliConfig) {
 			ShortName: "d",
 			Usage:     "Deploys a release to an environment",
 			Action: func(c *cli.Context) {
-				config.Addr = c.String("addr")
+				config.Addr = c.GlobalString("addr")
 				args := c.Args()
 				src := args.Get(0)
 				if src == "" {
