@@ -1,0 +1,112 @@
+swagger: '2.0'
+info:
+  title: Deployer API
+basePath: /v1
+produces:
+  - application/json
+definitions:
+  ErrorModel:
+    type: object
+    required:
+      - message
+      - data
+      - code
+    properties:
+      message:
+        type: string
+      data:
+        type: object
+      code:
+        type: integer
+parameters:
+  buildsParam:
+    name: builds
+    description: A map of service names to tags
+    in: formData
+    required: true
+    type: object
+    additionalProperties:
+      type: string
+paths:
+  /builds:
+    post:
+      summary: Registers builds
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - $ref: '#/parameters/buildsParam'
+      responses:
+        201:
+          description: The build was created
+        400:
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        500:
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/ErrorModel'
+  /releases:
+    post:
+      summary: Creates and optionally deploys a new release
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - $ref: '#/parameters/buildsParam'
+        - name: wait
+          description: Set to true to wait for the registration of all included builds before creating the release
+          in: formData
+          default: false
+          type: boolean
+        - name: to
+          description: The name of the environment to deploy the release to after it is created. The release will not be deployed if this field is blank.
+          in: formData
+          type: string
+      responses:
+        201:
+          description: The release was created and was deployed if requested
+        400:
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        500:
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/ErrorModel'
+  /deploys:
+    post:
+      summary: Deploys a release to an environment
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - name: from
+          description: the id of the release to deploy or the name of the source environment
+          type: string
+          required: true
+        - name: to
+          description: the name of the environment to deploy to
+          type: string
+          required: true
+      responses:
+        201:
+          description: The release was deployed
+        400:
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        500:
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/ErrorModel'
