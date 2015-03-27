@@ -10,6 +10,7 @@ import (
 
 	"github.com/jsdir/deployer/pkg/resources"
 
+	"github.com/ajg/form"
 	"github.com/mholt/binding"
 )
 
@@ -107,10 +108,11 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 
 func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
 	// Create a deploy request
-	deploy := new(resources.DeployRequest)
-	errs := binding.Bind(req, deploy)
-	if errs != nil {
-		return http.StatusBadRequest, errs
+	var deploy DeployRequest
+
+	d := form.NewDecoder(r.Body)
+	if err := d.Decode(&deploy); err != nil {
+		return http.StatusBadRequest, err
 	}
 
 	// Get the environment config
