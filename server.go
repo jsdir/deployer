@@ -108,9 +108,9 @@ func releaseHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (in
 
 func deployHandler(ctx *Context, rw http.ResponseWriter, req *http.Request) (int, error) {
 	// Create a deploy request
-	var deploy DeployRequest
+	var deploy resources.DeployRequest
 
-	d := form.NewDecoder(r.Body)
+	d := form.NewDecoder(req.Body)
 	if err := d.Decode(&deploy); err != nil {
 		return http.StatusBadRequest, err
 	}
