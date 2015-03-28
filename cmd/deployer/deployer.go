@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,36 +16,11 @@ import (
 )
 
 func main() {
-	config := loadConfig()
-	createCli(config)
+	app := CreateCliApp("http://localhost:7654")
+	app.Run(os.Args)
 }
 
-type CliConfig struct {
-	Addr string `json:"addr"`
-}
-
-// loadConfig loads config from the .Deployer file in the current directory.
-func loadConfig() *CliConfig {
-	/*
-		data, err := ioutil.ReadFile(".Deployer")
-		if err != nil {
-			log.Fatal(err)
-		}
-	*/
-
-	config := CliConfig{}
-
-	/*
-		err = json.Unmarshal(data, &config)
-		if err != nil {
-			log.Fatal("Error parsing .Deployer: ", err)
-		}
-	*/
-
-	return &config
-}
-
-func createCli(config *CliConfig) {
+func CreateCliApp(addr string) *cli.App {
 	app := cli.NewApp()
 
 	app.Usage = "A cli for deployerd"
@@ -52,7 +29,7 @@ func createCli(config *CliConfig) {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "addr",
-			Value: "http://localhost:7654",
+			Value: addr,
 			Usage: "Address and port of the deployerd instance",
 		},
 	}
@@ -64,98 +41,105 @@ func createCli(config *CliConfig) {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "environment, e",
-					Usage: "Environment to deploy the release to",
+					Usage: "Environment to deploy the release to (optional)",
 				},
 			},
-			Action: func(c *cli.Context) {
-				config.Addr = c.GlobalString("addr")
-				release := createRelease(config, c)
-				// Deploy to environment if it is specified.
-				env := c.String("environment")
-				if env != "" {
-					createDeploy(config, string(release.Id), env)
-				}
-			},
+			Action: handleRelease,
 		},
 		{
 			Name:      "deploy",
 			ShortName: "d",
 			Usage:     "Deploys a release to an environment",
-			Action: func(c *cli.Context) {
-				config.Addr = c.GlobalString("addr")
-				args := c.Args()
-				src := args.Get(0)
-				if src == "" {
-					log.Fatal("A valid source release or environment is required")
-				}
-
-				dest := args.Get(1)
-				if dest == "" {
-					log.Fatal("A valid destination environment is required")
-				}
-
-				createDeploy(config, src, dest)
-			},
+			Action:    handleDeploy,
 		},
 	}
 
-	app.Run(os.Args)
+	return app
 }
 
-func createRelease(config *CliConfig, c *cli.Context) *resources.Release {
+func handleRelease(c *cli.Context) {
+	release, err := createRelease(c)
+	handleErr(err)
+
+	// Deploy to environment if it is specified.
+	env := c.String("environment")
+	if env != "" {
+		createDeploy(c, string(release.Id), env)
+	}
+}
+
+func handleDeploy(c *cli.Context) {
+	args := c.Args()
+	src := args.Get(0)
+	if src == "" {
+		log.Fatal("A source release or environment is required")
+	}
+
+	dest := args.Get(1)
+	if dest == "" {
+		log.Fatal("A valid destination environment is required")
+	}
+
+	err := createDeploy(c, src, dest)
+	handleErr(err)
+}
+
+func createRelease(c *cli.Context) (*resources.Release, error) {
 	// Validate arguments
 	args := c.Args()
-	service := args.Get(0)
-	if service == "" {
-		log.Fatal("A valid service is required")
+	if len(args)%2 == 1 {
+		return nil, errors.New("Invalid builds")
 	}
 
-	tag := args.Get(1)
-	if tag == "" {
-		log.Fatal("A valid build tag is required")
-	}
+	// Send request
+	fmt.Println("Creating release...")
 
-	log.Println("Creating release...")
+	//values := url.Values{}
+	//values.Set("service", service)
+	//values.Add("tag", tag)
 
-	values := url.Values{}
-	values.Set("service", service)
-	values.Add("tag", tag)
-
-	res, err := http.PostForm(config.Addr+"/releases", values)
+	res, err := http.PostForm(c.GlobalString("addr")+"/releases", values)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-
 	defer res.Body.Close()
+
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	release := new(resources.Release)
 	json.Unmarshal(data, &release)
-	println(string(data[:]))
-	println(release.Id)
-	return release
+	fmt.Println(string(data[:]))
+	fmt.Println(release.Id)
+	return release, nil
 }
 
-func createDeploy(config *CliConfig, src string, dest string) {
-	log.Println("Deploying...")
+func createDeploy(c *cli.Context, src string, dest string) error {
+	fmt.Println("Deploying...")
 
 	values := url.Values{}
 	values.Set("src", src)
 	values.Add("dest", dest)
 
-	res, err := http.PostForm(config.Addr+"/deploys", values)
+	res, err := http.PostForm(c.GlobalString("addr")+"/deploys", values)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
 	defer res.Body.Close()
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	log.Printf(string(body[:]))
+	//fmt.Printf(string(body[:]))
+	return nil
+}
+
+func handleErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
